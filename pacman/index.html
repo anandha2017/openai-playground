@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Pac-Man</title>
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; background: black; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <script>
+  (function() {
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    let width, height, cellSize, offsetX, offsetY;
+    const ROWS = 15;
+    const COLS = 20;
+    const MAP = [
+      "####################",
+      "#..................#",
+      "#.####.####.####...#",
+      "#..................#",
+      "#.##.########.##...#",
+      "#..................#",
+      "#.####.####.####...#",
+      "#..................#",
+      "#.##.########.##...#",
+      "#..................#",
+      "#.####.####.####...#",
+      "#..................#",
+      "#.##.########.##...#",
+      "#..................#",
+      "####################"
+    ];
+    let pellets;
+    const pacman = { tx: 1, ty: 1, px: 0, py: 0, dir: { x: 0, y: 0 }, nextDir: { x: 0, y: 0 }, mouth: 0, mouthDir: 1 };
+    const keys = { ArrowUp: {x:0,y:-1}, ArrowDown:{x:0,y:1}, ArrowLeft:{x:-1,y:0}, ArrowRight:{x:1,y:0} };
+    let ghosts;
+    let score = 0;
+    function init() {
+      resize();
+      // init pellets
+      pellets = [];
+      for (let r = 0; r < ROWS; r++) {
+        pellets[r] = [];
+        for (let c = 0; c < COLS; c++) {
+          pellets[r][c] = MAP[r][c] === '.';
+        }
+      }
+      score = 0;
+      // init pacman position
+      pacman.px = offsetX + pacman.tx * cellSize + cellSize/2;
+      pacman.py = offsetY + pacman.ty * cellSize + cellSize/2;
+      pacman.dir = {x:0,y:0}; pacman.nextDir = {x:0,y:0}; pacman.mouth = 0; pacman.mouthDir = 1;
+      // init ghosts
+      ghosts = [
+        { tx: COLS-2, ty: 1, px:0, py:0, dir:{x:-1,y:0}, color:'red' },
+        { tx: COLS-2, ty: ROWS-2, px:0, py:0, dir:{x:0,y:-1}, color:'pink' },
+        { tx: 1, ty: ROWS-2, px:0, py:0, dir:{x:1,y:0}, color:'cyan' }
+      ];
+      ghosts.forEach(g => {
+        g.px = offsetX + g.tx * cellSize + cellSize/2;
+        g.py = offsetY + g.ty * cellSize + cellSize/2;
+      });
+      document.addEventListener('keydown', onKey);
+      requestAnimationFrame(loop);
+    }
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      cellSize = Math.floor(Math.min(width / COLS, height / ROWS));
+      offsetX = (width - cellSize * COLS) / 2;
+      offsetY = (height - cellSize * ROWS) / 2;
+    }
+    function onKey(e) {
+      if (keys[e.key]) pacman.nextDir = keys[e.key];
+    }
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    function update() {
+      const speed = cellSize * 0.1;
+      // Pac-Man movement
+      let relX = pacman.px - offsetX;
+      let relY = pacman.py - offsetY;
+      let modX = ((relX % cellSize) + cellSize) % cellSize;
+      let modY = ((relY % cellSize) + cellSize) % cellSize;
+      let atCenter = Math.abs(modX - cellSize/2) < speed && Math.abs(modY - cellSize/2) < speed;
+      let tileX = Math.floor(relX / cellSize);
+      let tileY = Math.floor(relY / cellSize);
+      if (atCenter) {
+        // snap to center
+        pacman.px = offsetX + tileX * cellSize + cellSize/2;
+        pacman.py = offsetY + tileY * cellSize + cellSize/2;
+        // change direction if possible
+        let nd = pacman.nextDir;
+        if (!isWall(tileX + nd.x, tileY + nd.y)) pacman.dir = nd;
+        else if (isWall(tileX + pacman.dir.x, tileY + pacman.dir.y)) pacman.dir = {x:0,y:0};
+        // eat pellet
+        if (pellets[tileY][tileX]) { pellets[tileY][tileX] = false; score++; }
+      }
+      pacman.px += pacman.dir.x * speed;
+      pacman.py += pacman.dir.y * speed;
+      // update mouth
+      pacman.mouth += pacman.mouthDir * 0.15;
+      if (pacman.mouth > 0.25 || pacman.mouth < 0) pacman.mouthDir *= -1;
+      // Ghosts movement
+      ghosts.forEach(g => {
+        const gs = speed * 0.9;
+        let gr = g.py - offsetY;
+        let gc = g.px - offsetX;
+        let mgx = ((gc % cellSize) + cellSize) % cellSize;
+        let mgy = ((gr % cellSize) + cellSize) % cellSize;
+        let atGcenter = Math.abs(mgx - cellSize/2) < gs && Math.abs(mgy - cellSize/2) < gs;
+        let gTileX = Math.floor(gc / cellSize);
+        let gTileY = Math.floor(gr / cellSize);
+        if (atGcenter) {
+          g.px = offsetX + gTileX * cellSize + cellSize/2;
+          g.py = offsetY + gTileY * cellSize + cellSize/2;
+          // choose new direction
+          const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+          let options = dirs.filter(d => !isWall(gTileX+d.x, gTileY+d.y) && !(d.x === -g.dir.x && d.y === -g.dir.y));
+          if (options.length) g.dir = options[Math.floor(Math.random()*options.length)];
+        }
+        g.px += g.dir.x * gs;
+        g.py += g.dir.y * gs;
+        // collision
+        let dx = pacman.px - g.px;
+        let dy = pacman.py - g.py;
+        if (Math.hypot(dx,dy) < cellSize*0.5) {
+          alert('Game Over! Score: ' + score);
+          init();
+        }
+      });
+    }
+    function isWall(x,y) {
+      return MAP[y] === undefined || MAP[y][x] === undefined || MAP[y][x] === '#';
+    }
+    function draw() {
+      // clear
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0,0,width,height);
+      // draw walls
+      ctx.fillStyle = 'blue';
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (MAP[r][c] === '#') {
+        ctx.fillRect(offsetX+c*cellSize, offsetY+r*cellSize, cellSize, cellSize);
+      }
+      // draw pellets
+      ctx.fillStyle = 'white';
+      for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (pellets[r][c]) {
+        let x = offsetX + c*cellSize + cellSize/2;
+        let y = offsetY + r*cellSize + cellSize/2;
+        ctx.beginPath(); ctx.arc(x,y, cellSize*0.1,0,Math.PI*2); ctx.fill();
+      }
+      // draw pacman
+      ctx.fillStyle = 'yellow';
+      ctx.beginPath();
+      ctx.moveTo(pacman.px, pacman.py);
+      let start = pacman.mouth * Math.PI;
+      let end = 2*Math.PI - start;
+      let angle = Math.atan2(pacman.dir.y, pacman.dir.x);
+      if (pacman.dir.x===0&&pacman.dir.y===0) angle = 0;
+      ctx.arc(pacman.px, pacman.py, cellSize*0.4, start+angle, end+angle, false);
+      ctx.closePath(); ctx.fill();
+      // draw ghosts
+      ghosts.forEach(g => {
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.arc(g.px, g.py, cellSize*0.4, 0, Math.PI*2);
+        ctx.fill();
+      });
+      // draw score
+      ctx.fillStyle = 'white';
+      ctx.font = cellSize+'px sans-serif';
+      ctx.fillText('Score: '+score, 10, cellSize);
+    }
+    window.addEventListener('resize', resize);
+    init();
+  })();
+  </script>
+</body>
+</html>
