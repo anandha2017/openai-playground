@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pong Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #F0F4F8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      color: #37474F;
+      position: relative;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      background: #FFFFFF;
+      border: 1px solid #CFD8DC;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: block;
+    }
+    #scoreboard {
+      display: none;
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      /* will be set to flex via JS when game starts */
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      font-size: 1.2em;
+      color: #37474F;
+    }
+    #startOverlay,
+    #winOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(240, 244, 248, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #startOverlay > div,
+    #winOverlay > div {
+      background: #FFFFFF;
+      padding: 20px;
+      border: 1px solid #CFD8DC;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    input {
+      padding: 8px;
+      margin: 5px;
+      border: 1px solid #B0BEC5;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      background: #90A4AE;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button:hover {
+      background: #78909C;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <div id="scoreboard">
+    <span id="displayName1">Player 1</span>
+    <span id="score1">0</span>
+    <span>-</span>
+    <span id="score2">0</span>
+    <span id="displayName2">Player 2</span>
+  </div>
+  <div id="startOverlay">
+    <div>
+      <h1>Pong Game</h1>
+      <div>
+        <input type="text" id="player1Name" placeholder="Player 1 Name" />
+      </div>
+      <div>
+        <input type="text" id="player2Name" placeholder="Player 2 Name" />
+      </div>
+      <div>Left: W/S keys | Right: ↑/↓ keys</div>
+      <button id="startBtn">Start</button>
+    </div>
+  </div>
+  <div id="winOverlay" style="display: none;">
+    <div>
+      <h2 id="winText"></h2>
+      <button id="restartBtn">Restart</button>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      const paddleWidth = 10;
+      const paddleHeight = 80;
+      const paddleSpeed = 6;
+      let p1Y = height / 2 - paddleHeight / 2;
+      let p2Y = height / 2 - paddleHeight / 2;
+      let up1 = false,
+        down1 = false,
+        up2 = false,
+        down2 = false;
+      let ballX = width / 2;
+      let ballY = height / 2;
+      const ballRadius = 8;
+      let ballSpeedX = 4 * (Math.random() > 0.5 ? 1 : -1);
+      let ballSpeedY = 3 * (Math.random() * 2 - 1);
+      let score1 = 0,
+        score2 = 0;
+      const targetScore = 10;
+      let animId;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+      function playBeep(freq, duration = 0.1) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.value = 0.1;
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      }
+      function resetBall(direction) {
+        ballX = width / 2;
+        ballY = height / 2;
+        ballSpeedX = 4 * direction;
+        ballSpeedY = 3 * (Math.random() * 2 - 1);
+      }
+      function updateScoreboard() {
+        document.getElementById('score1').textContent = score1;
+        document.getElementById('score2').textContent = score2;
+      }
+      function endGame(winner) {
+        cancelAnimationFrame(animId);
+        document.getElementById('winText').textContent = winner + ' Wins!';
+        document.getElementById('winOverlay').style.display = 'flex';
+        playBeep(880, 0.2);
+      }
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#81C784';
+        ctx.fillRect(0, p1Y, paddleWidth, paddleHeight);
+        ctx.fillStyle = '#4FC3F7';
+        ctx.fillRect(width - paddleWidth, p2Y, paddleWidth, paddleHeight);
+        ctx.fillStyle = '#FFB74D';
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      function update() {
+        if (up1) p1Y = Math.max(0, p1Y - paddleSpeed);
+        if (down1) p1Y = Math.min(height - paddleHeight, p1Y + paddleSpeed);
+        if (up2) p2Y = Math.max(0, p2Y - paddleSpeed);
+        if (down2) p2Y = Math.min(height - paddleHeight, p2Y + paddleSpeed);
+        ballX += ballSpeedX;
+        ballY += ballSpeedY;
+        if (ballY - ballRadius <= 0 || ballY + ballRadius >= height) {
+          ballSpeedY = -ballSpeedY;
+          playBeep(440, 0.05);
+        }
+        if (ballX - ballRadius <= paddleWidth) {
+          if (ballY >= p1Y && ballY <= p1Y + paddleHeight) {
+            ballSpeedX = -ballSpeedX;
+            const deltaY = ballY - (p1Y + paddleHeight / 2);
+            ballSpeedY = deltaY * 0.15;
+            playBeep(660, 0.05);
+          }
+        }
+        if (ballX + ballRadius >= width - paddleWidth) {
+          if (ballY >= p2Y && ballY <= p2Y + paddleHeight) {
+            ballSpeedX = -ballSpeedX;
+            const deltaY = ballY - (p2Y + paddleHeight / 2);
+            ballSpeedY = deltaY * 0.15;
+            playBeep(660, 0.05);
+          }
+        }
+        if (ballX - ballRadius <= 0) {
+          score2++;
+          updateScoreboard();
+          playBeep(880, 0.2);
+          if (score2 >= targetScore) {
+            endGame(document.getElementById('displayName2').textContent);
+            return;
+          }
+          resetBall(1);
+        }
+        if (ballX + ballRadius >= width) {
+          score1++;
+          updateScoreboard();
+          playBeep(880, 0.2);
+          if (score1 >= targetScore) {
+            endGame(document.getElementById('displayName1').textContent);
+            return;
+          }
+          resetBall(-1);
+        }
+      }
+      function gameLoop() {
+        update();
+        draw();
+        animId = requestAnimationFrame(gameLoop);
+      }
+      document.addEventListener('keydown', (e) => {
+        const key = e.key;
+        if (key === 'w' || key === 'W') up1 = true;
+        if (key === 's' || key === 'S') down1 = true;
+        if (key === 'ArrowUp') up2 = true;
+        if (key === 'ArrowDown') down2 = true;
+      });
+      document.addEventListener('keyup', (e) => {
+        const key = e.key;
+        if (key === 'w' || key === 'W') up1 = false;
+        if (key === 's' || key === 'S') down1 = false;
+        if (key === 'ArrowUp') up2 = false;
+        if (key === 'ArrowDown') down2 = false;
+      });
+      document.getElementById('startBtn').addEventListener('click', () => {
+        const name1 = document.getElementById('player1Name').value.trim() || 'Player 1';
+        const name2 = document.getElementById('player2Name').value.trim() || 'Player 2';
+        document.getElementById('displayName1').textContent = name1;
+        document.getElementById('displayName2').textContent = name2;
+        document.getElementById('startOverlay').style.display = 'none';
+        document.getElementById('scoreboard').style.display = 'flex';
+        audioCtx.resume().then(gameLoop);
+      });
+      document.getElementById('restartBtn').addEventListener('click', () => {
+        location.reload();
+      });
+    })();
+  </script>
+</body>
+</html>
