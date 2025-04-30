@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+:root {
+  --bg: #0A0A1A;
+  --panel: rgba(17, 17, 17, 0.8);
+  --border-neon: #0FF;
+  --x-color: #0FF;
+  --o-color: #F0F;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Orbitron', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  background: var(--panel);
+  border: 2px solid var(--border-neon);
+  border-radius: 8px;
+  box-shadow: 0 0 10px var(--border-neon), 0 0 20px var(--border-neon);
+  text-align: center;
+}
+
+h1 {
+  color: var(--border-neon);
+  text-shadow: 0 0 8px var(--border-neon);
+  margin-bottom: 10px;
+}
+
+.settings {
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.settings label {
+  margin-right: 10px;
+  font-size: 0.9rem;
+}
+
+#difficulty {
+  margin-left: 10px;
+  padding: 4px;
+  background: transparent;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+#scoreboard {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 10px;
+  color: #fff;
+  font-size: 1rem;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.cell {
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
+  background: transparent;
+  border: 2px solid var(--border-neon);
+  box-shadow: 0 0 10px var(--border-neon);
+  cursor: pointer;
+  user-select: none;
+  animation: flicker 2s infinite;
+}
+
+.cell-inner {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+}
+
+.cell.x .cell-inner {
+  color: var(--x-color);
+  text-shadow: 0 0 8px var(--x-color);
+}
+
+.cell.o .cell-inner {
+  color: var(--o-color);
+  text-shadow: 0 0 8px var(--o-color);
+}
+
+.cell:hover {
+  animation: glow 1s infinite alternate;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 10px var(--border-neon), 0 0 20px var(--border-neon);
+  }
+  to {
+    box-shadow: 0 0 20px var(--border-neon), 0 0 30px var(--border-neon);
+  }
+}
+
+.controls {
+  margin-top: 10px;
+}
+
+.controls button {
+  margin: 5px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 2px solid var(--border-neon);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  box-shadow: 0 0 8px var(--border-neon);
+  transition: box-shadow 0.3s;
+}
+
+.controls button:hover {
+  box-shadow: 0 0 12px var(--border-neon), 0 0 20px var(--border-neon);
+}
+
+@media (max-width: 500px) {
+  .cell-inner {
+    font-size: 1.5rem;
+  }
+}

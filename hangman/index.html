@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hangman Game</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #hangman {
+      white-space: pre;
+      font-family: monospace;
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+    #word {
+      font-size: 2em;
+      letter-spacing: 0.5em;
+      margin-bottom: 10px;
+    }
+    #wrong-letters {
+      color: #c00;
+      margin-bottom: 20px;
+    }
+    #message {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hangman</h1>
+  <div id="hangman"></div>
+  <div id="word"></div>
+  <div id="wrong-letters"></div>
+  <p id="message"></p>
+
+  <script>
+    // List of words to guess
+    const words = [
+      'javascript', 'hangman', 'browser', 'function', 'variable',
+      'document', 'element', 'window', 'keyboard', 'network'
+    ];
+
+    // ASCII-art stages of hangman
+    const stages = [
+      ` +---+
+ |   |
+     |
+     |
+     |
+     |
+=========`,
+
+      ` +---+
+ |   |
+ O   |
+     |
+     |
+     |
+=========`,
+
+      ` +---+
+ |   |
+ O   |
+ |   |
+     |
+     |
+=========`,
+
+      ` +---+
+ |   |
+ O   |
+/|   |
+     |
+     |
+=========`,
+
+      ` +---+
+ |   |
+ O   |
+/|\\  |
+     |
+     |
+=========`,
+
+      ` +---+
+ |   |
+ O   |
+/|\\  |
+/    |
+     |
+=========`,
+
+      ` +---+
+ |   |
+ O   |
+/|\\  |
+/ \\  |
+     |
+=========`  
+    ];
+
+    let selectedWord = '';
+    let correctLetters = [];
+    let wrongLetters = [];
+    const maxWrong = stages.length - 1;
+
+    // DOM references
+    const hangmanDiv = document.getElementById('hangman');
+    const wordDiv = document.getElementById('word');
+    const wrongDiv = document.getElementById('wrong-letters');
+    const message = document.getElementById('message');
+
+    // Initialize a new game
+    function init() {
+      // Pick a random word
+      selectedWord = words[Math.floor(Math.random() * words.length)];
+      correctLetters = [];
+      wrongLetters = [];
+      updateDisplay();
+      message.textContent = '';
+      window.addEventListener('keydown', handleKeydown);
+    }
+
+    // Update hangman, word, and wrong letters
+    function updateDisplay() {
+      hangmanDiv.textContent = stages[wrongLetters.length];
+      wordDiv.textContent = selectedWord
+        .split('')
+        .map(letter => (correctLetters.includes(letter) ? letter : '_'))
+        .join(' ');
+      wrongDiv.textContent = wrongLetters.length
+        ? 'Wrong: ' + wrongLetters.join(' ')
+        : '';
+    }
+
+    // Handle keypress events
+    function handleKeydown(event) {
+      const guess = event.key.toLowerCase();
+      if (!guess.match(/^[a-z]$/)) return; // ignore non-letters
+      if (correctLetters.includes(guess) || wrongLetters.includes(guess)) {
+        return; // already guessed
+      }
+      if (selectedWord.includes(guess)) {
+        correctLetters.push(guess);
+      } else {
+        wrongLetters.push(guess);
+      }
+      updateDisplay();
+      checkGameOver();
+    }
+
+    // Check win/lose conditions
+    function checkGameOver() {
+      // Win: no underscores left
+      if (!wordDiv.textContent.includes('_')) {
+        message.textContent = '🎉 You win!';
+        window.removeEventListener('keydown', handleKeydown);
+      }
+      // Lose: too many wrong guesses
+      if (wrongLetters.length >= maxWrong) {
+        message.textContent = '💀 You lose! The word was "' + selectedWord + '".';
+        window.removeEventListener('keydown', handleKeydown);
+      }
+    }
+
+    // Start the game on page load
+    window.onload = init;
+  </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noughts and Crosses</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Noughts and Crosses</h1>
+    <div class="settings">
+      <label>
+        <input type="radio" name="mode" value="two-player" checked /> Two-player
+      </label>
+      <label>
+        <input type="radio" name="mode" value="single-player" /> Single-player
+      </label>
+      <select id="difficulty" disabled>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+    <div id="scoreboard">
+      <div>Player X: <span id="scoreX">0</span></div>
+      <div>Player O: <span id="scoreO">0</span></div>
+      <div>Draws: <span id="scoreDraw">0</span></div>
+    </div>
+    <div id="board"></div>
+    <div class="controls">
+      <button id="newGame">New Game</button>
+      <button id="resetScores">Reset Scores</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
