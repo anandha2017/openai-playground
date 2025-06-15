@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    #new-task-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    #task-input {
+      flex: 1;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #task-list {
+      list-style: none;
+      padding: 0;
+    }
+    .task {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .task span {
+      flex: 1;
+    }
+    .task.done span {
+      text-decoration: line-through;
+      color: #999;
+    }
+    .remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #c00;
+      font-size: 20px;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Task Tracker</h1>
+  <form id="new-task-form">
+    <input type="text" id="task-input" placeholder="Enter a new task" required>
+    <button type="submit">Add</button>
+  </form>
+  <ul id="task-list"></ul>
+  <script>
+    const form = document.getElementById('new-task-form');
+    const input = document.getElementById('task-input');
+    const list = document.getElementById('task-list');
+
+    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+
+    function save() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function render() {
+      list.innerHTML = '';
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'task' + (task.done ? ' done' : '');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.done;
+        checkbox.addEventListener('change', () => {
+          task.done = checkbox.checked;
+          save();
+          render();
+        });
+
+        const span = document.createElement('span');
+        span.textContent = task.text;
+
+        const remove = document.createElement('button');
+        remove.textContent = '\u00d7';
+        remove.className = 'remove-btn';
+        remove.addEventListener('click', () => {
+          tasks.splice(index, 1);
+          save();
+          render();
+        });
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(remove);
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (text) {
+        tasks.push({ text, done: false });
+        input.value = '';
+        save();
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
