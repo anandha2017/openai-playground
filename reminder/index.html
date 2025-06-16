@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task Reminder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    #new-task-form {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    #task-input {
+      flex: 1 1 auto;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #date-input {
+      flex: 0 0 160px;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #task-list {
+      list-style: none;
+      padding: 0;
+    }
+    .task {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .task span {
+      flex: 1;
+    }
+    .task.done span {
+      text-decoration: line-through;
+      color: #999;
+    }
+    .due {
+      margin-left: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+    .remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #c00;
+      font-size: 20px;
+      line-height: 1;
+    }
+    #record-btn {
+      background: none;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      padding: 6px 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Task Reminder</h1>
+  <form id="new-task-form">
+    <input type="text" id="task-input" placeholder="Enter a new task" required />
+    <input type="date" id="date-input" required />
+    <button type="button" id="record-btn">🎤</button>
+    <button type="submit">Add</button>
+  </form>
+  <ul id="task-list"></ul>
+  <script>
+    const form = document.getElementById('new-task-form');
+    const taskInput = document.getElementById('task-input');
+    const dateInput = document.getElementById('date-input');
+    const recordBtn = document.getElementById('record-btn');
+    const list = document.getElementById('task-list');
+
+    let tasks = JSON.parse(localStorage.getItem('reminder-tasks') || '[]');
+
+    function save() {
+      localStorage.setItem('reminder-tasks', JSON.stringify(tasks));
+    }
+
+    function render() {
+      list.innerHTML = '';
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'task' + (task.done ? ' done' : '');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.done;
+        checkbox.addEventListener('change', () => {
+          task.done = checkbox.checked;
+          save();
+          render();
+        });
+
+        const span = document.createElement('span');
+        span.textContent = task.text;
+
+        const due = document.createElement('span');
+        due.className = 'due';
+        due.textContent = 'Due: ' + task.due;
+
+        const remove = document.createElement('button');
+        remove.textContent = '\u00d7';
+        remove.className = 'remove-btn';
+        remove.addEventListener('click', () => {
+          tasks.splice(index, 1);
+          save();
+          render();
+        });
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(due);
+        li.appendChild(remove);
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = taskInput.value.trim();
+      const dueDate = dateInput.value;
+      if (text && dueDate) {
+        tasks.push({ text, due: dueDate, done: false });
+        taskInput.value = '';
+        dateInput.value = '';
+        save();
+        render();
+      }
+    });
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+
+      recordBtn.addEventListener('click', () => {
+        recognition.start();
+      });
+
+      recognition.addEventListener('result', event => {
+        const transcript = event.results[0][0].transcript;
+        taskInput.value = transcript;
+      });
+    } else {
+      recordBtn.style.display = 'none';
+    }
+
+    render();
+  </script>
+</body>
+</html>
